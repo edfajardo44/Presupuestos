@@ -295,8 +295,7 @@
     return doc;
   }
 
-  async function crearYCompartir() {
-    const nombre = `${nombreDocumentoParaImprimir()}.pdf`;
+  async function crearYCompartir(nombre) {
     let doc;
     try {
       doc = crearPdf();
@@ -327,10 +326,60 @@
 
   window.__crearPdfPresupuesto = crearPdf;
 
+  function limpiarNombre(texto) {
+    return texto
+      .trim()
+      .replace(/\.pdf$/i, '')
+      .replace(/[\/\\:*?"<>|]/g, '-')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function montarDialogoNombre() {
+    const estilo = document.createElement('style');
+    estilo.textContent = '.modal-centro { align-items: center; padding: 16px; } .modal-centro .modal-content { border-radius: 16px; max-width: 420px; }';
+    document.head.appendChild(estilo);
+
+    const modal = document.createElement('div');
+    modal.id = 'modalNombrePdf';
+    modal.className = 'modal modal-centro hidden';
+    modal.innerHTML = `
+      <div class="modal-content">
+        <div class="modal-header"><h2>Nombre del archivo</h2></div>
+        <div class="field">
+          <input type="text" id="inputNombrePdf" autocomplete="off" aria-label="Nombre del archivo">
+        </div>
+        <p class="hint">Se guardará como PDF. Cambia el nombre si quieres antes de enviarlo.</p>
+        <div class="toolbar">
+          <button type="button" id="btnCancelarNombrePdf" class="btn btn-secondary">Cancelar</button>
+          <button type="button" id="btnConfirmarNombrePdf" class="btn btn-primary">Compartir PDF</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+
+    const input = modal.querySelector('#inputNombrePdf');
+    function cerrar() { modal.classList.add('hidden'); }
+    function confirmar() {
+      const base = limpiarNombre(input.value) || 'Presupuesto';
+      cerrar();
+      crearYCompartir(`${base}.pdf`);
+    }
+    modal.querySelector('#btnCancelarNombrePdf').addEventListener('click', cerrar);
+    modal.querySelector('#btnConfirmarNombrePdf').addEventListener('click', confirmar);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmar(); });
+    modal.addEventListener('click', (e) => { if (e.target === modal) cerrar(); });
+
+    return function abrir() {
+      input.value = nombreDocumentoParaImprimir();
+      modal.classList.remove('hidden');
+    };
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
+    const abrirDialogo = montarDialogoNombre();
     const boton = el('btnImprimir');
     const nuevo = boton.cloneNode(true);
     boton.replaceWith(nuevo);
-    nuevo.addEventListener('click', crearYCompartir);
+    nuevo.addEventListener('click', abrirDialogo);
   });
 })();
