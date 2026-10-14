@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Presupuestos de Pintura</title>
-<link rel="stylesheet" href="style.css?v=71">
+<link rel="stylesheet" href="style.css?v=1791986314">
 </head>
 <body class="version-movil">
 <header class="app-header">
@@ -323,7 +323,7 @@ Garantía de 3 años.</textarea>
 
     <p class="hint hint-print oculta-en-recibo">🔒 Al imprimir o exportar a PDF, solo se incluyen las etapas, las condiciones y el precio final. Tus costes internos (mano de obra, materiales, ganancia) no se muestran ni se comparten.</p>
 
-    <section class="card card-privado">
+    <section class="card card-privado solo-escritorio">
       <h2>Ajuste de impresión</h2>
       <div class="field">
         <label for="printScale">Tamaño al imprimir: <span id="printScaleLabel">100</span>%</label>
@@ -339,7 +339,7 @@ Garantía de 3 años.</textarea>
 
     <div class="toolbar toolbar-final">
       <button type="button" id="btnVistaPrevia" class="btn btn-secondary">👁️ Vista previa</button>
-      <button type="button" id="btnImprimir" class="btn btn-secondary">🖨️ Imprimir / PDF</button>
+      <button type="button" id="btnImprimir" class="btn btn-secondary">📄 Crear PDF</button>
     </div>
 
   </form>
@@ -361,6 +361,8 @@ Garantía de 3 años.</textarea>
   </div>
 </div>
 
-<script src="app.js?v=89"></script>
+<script src="app.js?v=1791986314"></script>
+<script src="jspdf.umd.min.js?v=1791986314"></script>
+<script src="pdf-movil.js?v=1791986314"></script>
 </body>
 </html>
