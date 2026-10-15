@@ -486,6 +486,9 @@ body.recibo-activo .solo-recibo { display: block; }
 .historial-item .info .meta { font-size: 0.8rem; color: var(--color-muted); }
 .historial-item .total { font-weight: 700; color: var(--color-text); margin-right: 8px; }
 .historial-vacio { color: var(--color-muted); text-align: center; padding: 24px 0; }
+.historial-copia { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border); }
+.historial-copia-botones { display: flex; gap: 8px; }
+.historial-copia .hint { margin: 8px 0 0; }
 .badge-factura {
   display: inline-block;
   background: var(--color-primary);

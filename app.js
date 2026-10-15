@@ -824,6 +824,136 @@ function cargarDatos(data) {
   cargandoDatos = false;
 }
 
+const ULTIMA_COPIA_KEY = 'presupuestos-pintura-ultima-copia';
+
+function obtenerContadoresFactura() {
+  const contadores = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith(`${FACTURA_CONTADOR_KEY}-`)) {
+      contadores[key.slice(FACTURA_CONTADOR_KEY.length + 1)] = parseInt(localStorage.getItem(key), 10);
+    }
+  }
+  return contadores;
+}
+
+function crearCopiaSeguridad() {
+  return {
+    app: 'presupuestos-pintura',
+    version: 1,
+    fecha: new Date().toISOString(),
+    presupuestos: getHistorial(),
+    empresa: {
+      nombre: el('empresaNombre').value,
+      actividad: el('empresaActividad').value,
+      telefono: el('empresaTelefono').value,
+      nifNombre: el('empresaNifNombre').value,
+      nif: el('empresaNif').value,
+      direccion: el('empresaDireccion').value,
+    },
+    trabajadores: trabajadoresHabituales,
+    facturaContadores: obtenerContadoresFactura(),
+  };
+}
+
+function actualizarTextoUltimaCopia() {
+  const texto = el('textoUltimaCopia');
+  const guardada = localStorage.getItem(ULTIMA_COPIA_KEY);
+  if (!guardada) {
+    texto.textContent = 'Todavía no has guardado ninguna copia.';
+    return;
+  }
+  const dias = Math.floor((Date.now() - new Date(guardada).getTime()) / 86400000);
+  texto.textContent = `Última copia: ${new Date(guardada).toLocaleDateString('es-ES')}` + (dias >= 7 ? ` (hace ${dias} días, conviene hacer otra)` : '');
+}
+
+async function guardarCopia() {
+  const nombre = `presupuestos-copia-${new Date().toLocaleDateString('sv-SE')}.json`;
+  const blob = new Blob([JSON.stringify(crearCopiaSeguridad(), null, 2)], { type: 'application/json' });
+  const archivo = new File([blob], nombre, { type: 'application/json' });
+  let hecho = false;
+  if (navigator.maxTouchPoints > 1 && navigator.canShare && navigator.canShare({ files: [archivo] })) {
+    try {
+      await navigator.share({ files: [archivo], title: nombre });
+      hecho = true;
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+    }
+  }
+  if (!hecho) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+  localStorage.setItem(ULTIMA_COPIA_KEY, new Date().toISOString());
+  actualizarTextoUltimaCopia();
+}
+
+function restaurarCopia(archivo) {
+  const lector = new FileReader();
+  lector.onload = () => {
+    let copia;
+    try {
+      copia = JSON.parse(lector.result);
+    } catch {
+      alert('El archivo no es una copia válida.');
+      return;
+    }
+    if (!copia || copia.app !== 'presupuestos-pintura' || !Array.isArray(copia.presupuestos)) {
+      alert('El archivo no es una copia de Presupuestos de Pintura.');
+      return;
+    }
+
+    const actual = getHistorial();
+    let nuevos = 0;
+    let actualizados = 0;
+    copia.presupuestos.forEach((p) => {
+      if (!p || !p.id) return;
+      const i = actual.findIndex((x) => x.id === p.id);
+      if (i < 0) {
+        actual.push(p);
+        nuevos += 1;
+      } else if (new Date(p.fechaActualizacion) > new Date(actual[i].fechaActualizacion)) {
+        actual[i] = p;
+        actualizados += 1;
+      }
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(actual));
+
+    const empresa = copia.empresa || {};
+    const campos = { nombre: 'empresaNombre', actividad: 'empresaActividad', telefono: 'empresaTelefono', nifNombre: 'empresaNifNombre', nif: 'empresaNif', direccion: 'empresaDireccion' };
+    Object.entries(campos).forEach(([clave, id]) => {
+      if (!el(id).value.trim() && empresa[clave]) el(id).value = empresa[clave];
+    });
+    guardarEmpresa();
+
+    if (Array.isArray(copia.trabajadores)) {
+      copia.trabajadores.forEach((t) => {
+        if (!t || !t.nombre) return;
+        if (!trabajadoresHabituales.some((x) => (x.nombre || '').trim().toLowerCase() === t.nombre.trim().toLowerCase())) {
+          trabajadoresHabituales.push({ nombre: t.nombre, costeNormal: t.costeNormal || 0, costeAltura: t.costeAltura || 0 });
+        }
+      });
+      guardarTrabajadoresHabituales();
+      renderTrabajadoresHabituales();
+      renderAccesoRapidoTrabajadores();
+    }
+
+    Object.entries(copia.facturaContadores || {}).forEach(([anio, numero]) => {
+      if (numero > 0) registrarNumeroFacturaUsado(numero, anio);
+    });
+
+    renderHistorial();
+    alert(`Copia restaurada ✅\n${nuevos} documento(s) añadido(s) y ${actualizados} actualizado(s).`);
+  };
+  lector.readAsText(archivo);
+}
+
 function getHistorial() {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -1030,10 +1160,18 @@ document.addEventListener('DOMContentLoaded', () => {
   el('btnNuevo').addEventListener('click', nuevoPresupuesto);
   el('btnHistorial').addEventListener('click', () => {
     renderHistorial();
+    actualizarTextoUltimaCopia();
     el('modalHistorial').classList.remove('hidden');
   });
   el('btnCerrarHistorial').addEventListener('click', () => {
     el('modalHistorial').classList.add('hidden');
+  });
+  el('btnGuardarCopia').addEventListener('click', guardarCopia);
+  el('btnRestaurarCopia').addEventListener('click', () => el('inputRestaurarCopia').click());
+  el('inputRestaurarCopia').addEventListener('change', () => {
+    const archivo = el('inputRestaurarCopia').files[0];
+    if (archivo) restaurarCopia(archivo);
+    el('inputRestaurarCopia').value = '';
   });
 
   el('fechaDocumento').addEventListener('change', () => {

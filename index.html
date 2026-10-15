@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Presupuestos de Pintura</title>
-<link rel="stylesheet" href="style.css?v=1791989689">
+<link rel="stylesheet" href="style.css?v=1792021690">
 </head>
 <body class="version-movil">
 <header class="app-header">
@@ -357,12 +357,20 @@ Garantía de 3 años.</textarea>
       <h2>Historial</h2>
       <button id="btnCerrarHistorial" class="btn btn-icon">✕</button>
     </div>
+    <div class="historial-copia">
+      <div class="historial-copia-botones">
+        <button type="button" id="btnGuardarCopia" class="btn btn-secondary">⬇️ Guardar copia</button>
+        <button type="button" id="btnRestaurarCopia" class="btn btn-secondary">⬆️ Restaurar copia</button>
+        <input type="file" id="inputRestaurarCopia" accept=".json,application/json" class="hidden">
+      </div>
+      <p class="hint" id="textoUltimaCopia"></p>
+    </div>
     <div id="listaHistorial"></div>
   </div>
 </div>
 
-<script src="app.js?v=1791989689"></script>
-<script src="jspdf.umd.min.js?v=1791989689"></script>
-<script src="pdf-movil.js?v=1791989689"></script>
+<script src="app.js?v=1792021690"></script>
+<script src="jspdf.umd.min.js?v=1792021690"></script>
+<script src="pdf-movil.js?v=1792021690"></script>
 </body>
 </html>
