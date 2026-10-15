@@ -667,10 +667,9 @@ body.modo-vista-previa { padding-bottom: 64px; }
 .barra-vista-previa .btn { flex: none; }
 
 
-/* Versión móvil: solo presupuestos */
+/* Versión móvil: presupuestos y recibís */
 body.version-movil .solo-escritorio,
 body.version-movil #btnNuevaFactura,
-body.version-movil #btnNuevoRecibo,
 body.version-movil .hint-print { display: none !important; }
 body.version-movil .card-header-toggle + .hint { margin-top: 10px; }
 @media screen and (max-width: 480px) {

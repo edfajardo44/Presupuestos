@@ -56,6 +56,152 @@
       y = MT;
     }
 
+    // ---------- Recibí (mismo texto y orden que el recibí del Mac) ----------
+    // Un párrafo es una lista de trozos {t, b}; se parte en palabras (pegando la puntuación al trozo
+    // anterior) y se reparte justificado, igual que el text-align: justify del recibí en pantalla.
+    function palabrasDe(trozos) {
+      const palabras = [];
+      let actual = [];
+      trozos.forEach(({ t, b }) => {
+        for (const ch of t) {
+          if (/\s/.test(ch)) {
+            if (actual.length) palabras.push(actual);
+            actual = [];
+          } else {
+            const ultimo = actual[actual.length - 1];
+            if (ultimo && ultimo.b === b) ultimo.t += ch;
+            else actual.push({ t: ch, b });
+          }
+        }
+      });
+      if (actual.length) palabras.push(actual);
+      return palabras;
+    }
+
+    // jsPDF mide con kerning pero dibuja sin él (las palabras quedarían pegadas): se mide letra a letra.
+    function anchoTexto(t) {
+      let w = 0;
+      for (const ch of t) w += doc.getTextWidth(ch);
+      return w;
+    }
+
+    function parrafoRecibo(trozos, tam, interlineado) {
+      const palabras = palabrasDe(trozos);
+      const medir = (p) => p.reduce((s, { t, b }) => {
+        fuente(tam, b ? 'bold' : 'normal');
+        return s + anchoTexto(t);
+      }, 0);
+      fuente(tam, 'normal');
+      const espacio = anchoTexto(' ');
+      const lineasP = [];
+      let linea = [];
+      let ancho = 0;
+      palabras.forEach((p) => {
+        const w = medir(p);
+        if (linea.length && ancho + espacio + w > cw) {
+          lineasP.push({ palabras: linea, suma: ancho - (linea.length - 1) * espacio });
+          linea = [];
+          ancho = 0;
+        }
+        ancho += (linea.length ? espacio : 0) + w;
+        linea.push({ p, w });
+      });
+      if (linea.length) lineasP.push({ palabras: linea, suma: ancho - (linea.length - 1) * espacio, ultima: true });
+      lineasP.forEach((l) => {
+        const hueco = !l.ultima && l.palabras.length > 1 ? (cw - l.suma) / (l.palabras.length - 1) : espacio;
+        let x = x0;
+        l.palabras.forEach(({ p }, i) => {
+          p.forEach(({ t, b }) => {
+            fuente(tam, b ? 'bold' : 'normal');
+            doc.text(t, x, y + 3.6);
+            x += anchoTexto(t);
+          });
+          x += hueco;
+        });
+        y += interlineado;
+      });
+    }
+
+    function dibujarRecibo() {
+      const emisorNombre = el('empresaNifNombre').value.trim();
+      const emisorNif = el('empresaNif').value.trim();
+      const emisorDireccion = el('empresaDireccion').value.trim();
+      const clienteNombre = el('clienteNombre').value.trim();
+      const clienteNif = el('clienteNif').value.trim();
+      const importe = num('reciboImporte');
+      const concepto = el('reciboConcepto').value.trim();
+      const porcentaje = el('reciboPorcentaje').value.trim();
+      const lugar = el('reciboLugar').value.trim() || 'S/C de Tenerife';
+      const fechaRecibo = facturaFecha || new Date().toISOString();
+      const TAM = 10.5;
+      const LH = 5.7;
+      const SEP = 4.2;
+
+      const inicio = y;
+      y += PAD + 4;
+      fuente(15, 'bold');
+      doc.text('RECIBÍ', ML + W / 2, y + 5, { align: 'center', charSpace: 0.8 });
+      y += 5 + 10;
+
+      parrafoRecibo([
+        { t: 'Yo, ', b: false }, { t: emisorNombre, b: true }, { t: ', con NIF: ', b: false },
+        { t: emisorNif, b: true }, { t: `, residente en ${emisorDireccion}.`, b: false },
+      ], TAM, LH);
+      y += SEP;
+      parrafoRecibo([
+        { t: 'He recibido de ', b: false }, { t: clienteNombre, b: true }, { t: ', con NIF: ', b: false },
+        { t: clienteNif, b: true }, { t: `, en concepto de ${concepto}.`, b: false },
+      ], TAM, LH);
+      y += SEP;
+
+      fuente(TAM, 'bold');
+      doc.text('La cantidad de:', x0, y + 3.6);
+      y += 6.4;
+      fuente(12.5, 'bold', C.verdeOsc);
+      const lsImporte = lineas(importeEnPalabrasCompleto(importe), cw - 10);
+      const hCaja = lsImporte.length * 5.8 + 5;
+      doc.setDrawColor(...C.verde);
+      doc.setLineWidth(0.7);
+      doc.roundedRect(x0, y, cw, hCaja, 2, 2, 'S');
+      lsImporte.forEach((l, i) => doc.text(l, ML + W / 2, y + 2.5 + 4.4 + i * 5.8, { align: 'center' }));
+      y += hCaja + SEP;
+
+      if (porcentaje) {
+        parrafoRecibo([{ t: `Dicha cantidad es el ${porcentaje}.`, b: false }], TAM, LH);
+        y += SEP;
+      }
+
+      y += 3;
+      fuente(TAM, 'normal');
+      doc.text(`En ${lugar} a ${fechaEnPalabras(fechaRecibo)}`, x0 + cw, y + 3.6, { align: 'right' });
+      y += LH + 12;
+
+      const SW = 78;
+      const xr = x0 + cw;
+      fuente(8.5, 'bold');
+      lineas(emisorNombre, SW).forEach((l) => {
+        doc.text(l, xr, y + 3, { align: 'right' });
+        y += 4.2;
+      });
+      fuente(8.5, 'normal');
+      [`NIF: ${emisorNif}`, ...lineas(emisorDireccion, SW)].forEach((l) => {
+        doc.text(l, xr, y + 3, { align: 'right' });
+        y += 4.2;
+      });
+      y += 4;
+      fuente(9.5, 'normal');
+      doc.text('Firma:', xr, y + 3, { align: 'right' });
+      y += 14;
+      doc.setDrawColor(51, 51, 51);
+      doc.setLineWidth(0.3);
+      doc.line(xr - SW, y, xr, y);
+      y += PAD + 2;
+
+      doc.setDrawColor(...C.borde);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(ML, inicio, W, y - inicio, 2.5, 2.5, 'S');
+    }
+
     // ---------- Membrete ----------
     const nombreEmpresa = el('empresaNombre').value.trim();
     const actividad = el('empresaActividad').value.trim();
@@ -93,7 +239,7 @@
 
     let yMeta = badgeY + badgeH + 6;
     fuente(10.5, 'bold');
-    doc.text('Presupuesto', ML + W - PAD, yMeta, { align: 'right' });
+    doc.text(esRecibo ? 'Recibí' : 'Presupuesto', ML + W - PAD, yMeta, { align: 'right' });
     fuente(9, 'normal');
     doc.text(`Fecha: ${fecha}`, ML + W - PAD, yMeta + 4.6, { align: 'right' });
 
@@ -103,7 +249,7 @@
     fuente(11, 'normal');
     doc.text(telefono, x0, yFila + 8.4);
     let alturaFila = 11;
-    if (cliente) {
+    if (cliente && !esRecibo) {
       const colX = ML + W / 2;
       fuente(8, 'normal', C.muted);
       doc.text('Cliente', colX, yFila + 3);
@@ -117,6 +263,11 @@
     doc.setLineWidth(0.3);
     doc.roundedRect(ML, membreteTop, W, membreteBottom - membreteTop, 2.5, 2.5, 'S');
     y = membreteBottom + 3;
+
+    if (esRecibo) {
+      dibujarRecibo();
+      return doc;
+    }
 
     // ---------- Tarjeta principal (título + etapas) ----------
     let tarjetaInicio = null;
@@ -360,7 +511,7 @@
     const input = modal.querySelector('#inputNombrePdf');
     function cerrar() { modal.classList.add('hidden'); }
     function confirmar() {
-      const base = limpiarNombre(input.value) || 'Presupuesto';
+      const base = limpiarNombre(input.value) || (esRecibo ? 'Recibí' : 'Presupuesto');
       cerrar();
       crearYCompartir(`${base}.pdf`);
     }
@@ -380,6 +531,13 @@
     const boton = el('btnImprimir');
     const nuevo = boton.cloneNode(true);
     boton.replaceWith(nuevo);
-    nuevo.addEventListener('click', abrirDialogo);
+    nuevo.addEventListener('click', () => {
+      if (esRecibo && !(el('empresaNifNombre').value.trim() && el('empresaNif').value.trim() && el('empresaDireccion').value.trim())) {
+        alert('Antes de crear el recibí, rellena tus "Datos fiscales" (nombre, NIF y dirección). Se guardan una vez en este iPhone.');
+        el('empresaNifNombre').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      abrirDialogo();
+    });
   });
 })();
