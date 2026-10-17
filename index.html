@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Presupuestos de Pintura</title>
-<link rel="stylesheet" href="style.css?v=1792061113">
+<link rel="stylesheet" href="style.css?v=1792198995">
 </head>
 <body class="version-movil">
 <header class="app-header">
@@ -176,7 +176,14 @@
           <input type="text" id="hierrosElemento" placeholder="las ventanas, la verja, el portón...">
         </div>
       </div>
-      <button type="button" id="btnCargarEtapas" class="btn btn-link">⬇️ Cargar etapas sugeridas</button>
+      <div class="field field-tipo-trabajo hidden" id="campoNombreSeccion">
+        <label for="nombreSeccion">Título de esta parte (se ve en verde)</label>
+        <input type="text" id="nombreSeccion" placeholder="Ej: Fachada (opcional)">
+      </div>
+      <div class="etapa-botones">
+        <button type="button" id="btnCargarEtapas" class="btn btn-link">⬇️ Cargar etapas sugeridas</button>
+        <button type="button" id="btnDeshacerEtapas" class="btn btn-link" disabled>↩️ Deshacer</button>
+      </div>
       <input type="text" id="tituloTipoTrabajo" class="titulo-tipo-trabajo hidden">
       <div id="etapas"></div>
       <div id="facturaContenido" class="solo-factura"></div>
@@ -369,8 +376,8 @@ Garantía de 3 años.</textarea>
   </div>
 </div>
 
-<script src="app.js?v=1792061113"></script>
-<script src="jspdf.umd.min.js?v=1792061113"></script>
-<script src="pdf-movil.js?v=1792061113"></script>
+<script src="app.js?v=1792198995"></script>
+<script src="jspdf.umd.min.js?v=1792198995"></script>
+<script src="pdf-movil.js?v=1792198995"></script>
 </body>
 </html>

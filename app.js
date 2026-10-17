@@ -19,12 +19,11 @@ function autoResizeTextarea(ta) {
   ta.style.height = ta.scrollHeight + 'px';
 }
 
-function etapasInterior(elemento) {
-  const nombre = (elemento || '').trim() || 'la vivienda';
+function etapasInterior() {
   return [
     capitulo('Raspado y limpieza'),
     tarea('Limpieza y raspado de las superficies, retirando restos de pintura suelta, polvo y suciedad para garantizar una correcta adherencia de los materiales'),
-    tarea(`Reparación de grietas en ${nombre} mediante pasta de interior, rellenando y nivelando la zona dañada para dejarla lista para el acabado final`),
+    tarea('Reparación de grietas mediante pasta de interior, rellenando y nivelando la zona dañada para dejarla lista para el acabado final'),
     tarea('Reparación de desperfectos mayores mediante mortero impermeabilizante, aportando mayor resistencia y evitando futuras filtraciones de humedad'),
     capitulo('Lijado'),
     tarea('Lijado de empastes y superficies —ya sean lisas, rugosas o con gotelé— para conseguir un acabado uniforme, eliminar irregularidades y favorecer la correcta adherencia de la pintura'),
@@ -33,22 +32,20 @@ function etapasInterior(elemento) {
   ];
 }
 
-function etapasHierros(elemento) {
-  const nombre = (elemento || '').trim() || 'los hierros';
+function etapasHierros() {
   return [
     capitulo('Preparación de superficies'),
-    tarea(`Raspado y cepillado ${conDe(nombre)}, eliminando el óxido suelto y la pintura mal adherida hasta alcanzar el grado de limpieza St-2 (norma UNE-EN ISO 8501-1), dejando la superficie lista`),
+    tarea('Raspado y cepillado, eliminando el óxido suelto y la pintura mal adherida hasta alcanzar el grado de limpieza St-2 (norma UNE-EN ISO 8501-1), dejando la superficie lista'),
     capitulo('Pintura antioxidante'),
     tarea('Aplicación de dos manos de esmalte Junolac Antioxidante de la casa JUNO, certificado según la norma UNE 48316:2014 para esmaltes anticorrosivos de altas prestaciones, disponible en acabado brillante —mayor brillo y viveza de color— o satinado —aspecto más elegante y con menor reflejo—. Se aplica directamente sobre el hierro sin necesidad de imprimación, con secado rápido, gran dureza y adherencia, y una probada resistencia a la intemperie y la corrosión'),
   ];
 }
 
-function etapasExterior(elemento) {
-  const nombre = (elemento || '').trim() || 'la superficie';
+function etapasExterior() {
   return [
     capitulo('Raspado y limpieza'),
     tarea('Limpieza y raspado de las superficies'),
-    tarea(`Apertura y profundización de grietas en ${nombre}`),
+    tarea('Apertura y profundización de grietas'),
     capitulo('Reparación de grietas y desperfectos'),
     tarea('Relleno de grietas y arreglo de desperfectos mediante pasta de exteriores de la casa JUNO'),
     tarea('Reparación de desperfectos mayores mediante mortero impermeabilizante'),
@@ -113,6 +110,24 @@ let currentId = null;
 let cargandoDatos = false;
 let autoguardadoTimeout = null;
 let estadoGuardadoTimeout = null;
+
+// Deshacer en las etapas: antes de cada cambio (cargar etapas, añadir o borrar filas) se guarda una foto.
+const MAX_PASOS_ETAPAS = 30;
+let pasosEtapas = [];
+
+function guardarPasoEtapas() {
+  pasosEtapas.push({ filas: JSON.stringify(etapaRows), titulo: el('tituloTipoTrabajo').value });
+  if (pasosEtapas.length > MAX_PASOS_ETAPAS) pasosEtapas.shift();
+}
+
+function deshacerEtapas() {
+  const paso = pasosEtapas.pop();
+  if (!paso) return;
+  etapaRows = JSON.parse(paso.filas);
+  el('tituloTipoTrabajo').value = paso.titulo;
+  el('tituloTipoTrabajo').classList.toggle('hidden', !paso.titulo);
+  renderEtapas();
+}
 
 function marcarCambio() {
   if (cargandoDatos) return;
@@ -180,6 +195,8 @@ function renderEtapas() {
   etapaRows.forEach((row) => {
     const wrap = document.createElement('div');
     if (row.esSeccion) {
+      capituloNum = 0;
+      tareaNum = 0;
       wrap.className = 'dynamic-row etapa-row etapa-seccion-row';
       wrap.innerHTML = `
         <div class="field">
@@ -224,6 +241,7 @@ function renderEtapas() {
       if (row.esCapitulo || row.esSeccion) actualizarFacturaContenido();
     });
     wrap.querySelector('button').addEventListener('click', () => {
+      guardarPasoEtapas();
       etapaRows = etapaRows.filter((x) => x !== row);
       renderEtapas();
     });
@@ -231,6 +249,7 @@ function renderEtapas() {
     autoResizeTextarea(descInput);
   });
   actualizarFacturaContenido();
+  el('btnDeshacerEtapas').disabled = pasosEtapas.length === 0;
   marcarCambio();
 }
 
@@ -492,6 +511,7 @@ function toggleElementoUI() {
   el('campoExteriorElemento').classList.toggle('hidden', el('tipoTrabajo').value !== 'exterior');
   el('campoInteriorElemento').classList.toggle('hidden', el('tipoTrabajo').value !== 'interior');
   el('campoHierrosElemento').classList.toggle('hidden', el('tipoTrabajo').value !== 'hierros');
+  el('campoNombreSeccion').classList.toggle('hidden', !el('tipoTrabajo').value);
 }
 
 function renderEmpleados() {
@@ -697,6 +717,7 @@ function nuevoPresupuesto() {
   el('interiorElemento').value = '';
   el('hierrosElemento').value = '';
   etapaRows = [];
+  pasosEtapas = [];
   empleadoRows = [];
   equipoRows = [];
   extraRows = [];
@@ -799,6 +820,8 @@ function cargarDatos(data) {
   el('interiorElemento').value = interiorElemento;
   el('hierrosElemento').value = hierrosElemento;
   etapaRows = data.etapaRows ? JSON.parse(JSON.stringify(data.etapaRows)) : [];
+  pasosEtapas = [];
+  el('nombreSeccion').value = '';
   empleadoRows = data.empleadoRows ? JSON.parse(JSON.stringify(data.empleadoRows)) : [];
   equipoRows = data.equipoRows ? JSON.parse(JSON.stringify(data.equipoRows)) : [];
   extraRows = data.extraRows ? JSON.parse(JSON.stringify(data.extraRows)) : [];
@@ -1100,20 +1123,24 @@ document.addEventListener('DOMContentLoaded', () => {
     let etiquetaSeccion;
     if (tipo === 'exterior') {
       const elemento = el('exteriorElemento').value.trim() || 'la superficie';
-      plantilla = etapasExterior(elemento);
+      plantilla = etapasExterior();
       etiquetaSeccion = capitalizar(elemento);
     } else if (tipo === 'interior') {
       const elemento = el('interiorElemento').value.trim() || 'la vivienda';
-      plantilla = etapasInterior(elemento);
+      plantilla = etapasInterior();
       etiquetaSeccion = capitalizar(elemento);
     } else if (tipo === 'hierros') {
       const elemento = el('hierrosElemento').value.trim() || 'los hierros';
-      plantilla = etapasHierros(elemento);
+      plantilla = etapasHierros();
       etiquetaSeccion = capitalizar(elemento);
     } else {
       plantilla = ETAPAS_TEMPLATES[tipo];
       etiquetaSeccion = TITULOS_TIPO_TRABAJO[tipo] || tipo;
     }
+    guardarPasoEtapas();
+    const nombreSeccion = el('nombreSeccion').value.trim();
+    if (nombreSeccion) etiquetaSeccion = capitalizar(nombreSeccion);
+    el('nombreSeccion').value = '';
     const esPrimeraCarga = etapaRows.length === 0;
     const nuevasFilas = [seccion(etiquetaSeccion), ...plantilla.map((row) => ({ ...row }))];
     etapaRows = etapaRows.concat(nuevasFilas);
@@ -1121,11 +1148,14 @@ document.addEventListener('DOMContentLoaded', () => {
     actualizarOffsetImpresion();
     renderEtapas();
   });
+  el('btnDeshacerEtapas').addEventListener('click', deshacerEtapas);
   el('btnAddCapitulo').addEventListener('click', () => {
+    guardarPasoEtapas();
     etapaRows.push(capitulo(''));
     renderEtapas();
   });
   el('btnAddEtapa').addEventListener('click', () => {
+    guardarPasoEtapas();
     etapaRows.push(tarea(''));
     renderEtapas();
   });

@@ -365,6 +365,8 @@
     etapaRows.forEach((row) => {
       const desc = (row.desc || '').trim();
       if (row.esSeccion) {
+        capNum = 0;
+        tareaNum = 0;
         if (desc) bloques.push(bloqueSeccion(desc));
       } else if (row.esCapitulo) {
         capNum += 1;

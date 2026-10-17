@@ -193,6 +193,7 @@ body {
   flex: none;
   width: 100%;
 }
+.btn-link:disabled { opacity: 0.4; cursor: default; }
 .btn-icon { background: none; font-size: 1.2rem; padding: 4px 8px; flex: none; }
 .btn-danger-icon {
   background: none;
@@ -310,7 +311,7 @@ body {
   text-align: center;
   color: var(--color-primary);
 }
-.etapa-botones { display: flex; gap: 16px; flex-wrap: wrap; }
+.etapa-botones { display: flex; gap: 0 16px; flex-wrap: wrap; }
 .etapa-botones .btn-link { width: auto; flex: none; }
 
 .letterhead-top {
