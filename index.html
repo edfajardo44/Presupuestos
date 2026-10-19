@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Presupuestos de Pintura</title>
-<link rel="stylesheet" href="style.css?v=1792198995">
+<link rel="stylesheet" href="style.css?v=1792426435">
 </head>
 <body class="version-movil">
 <header class="app-header">
@@ -332,6 +332,14 @@ Garantía de 3 años.</textarea>
 
     <section class="card card-privado solo-escritorio">
       <h2>Ajuste de impresión</h2>
+      <div class="card-header-toggle">
+        <span class="etiqueta-ajuste">Ajustar a una sola página</span>
+        <label class="switch">
+          <input type="checkbox" id="ajustarUnaPagina">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <p class="hint" id="estadoAjusteUnaPagina" style="margin-top:6px;">Al imprimir, reduce el tamaño solo lo necesario para que todo quepa en una hoja.</p>
       <div class="field">
         <label for="printScale">Tamaño al imprimir: <span id="printScaleLabel">100</span>%</label>
         <input type="range" id="printScale" min="50" max="100" step="5" value="100">
@@ -376,8 +384,8 @@ Garantía de 3 años.</textarea>
   </div>
 </div>
 
-<script src="app.js?v=1792198995"></script>
-<script src="jspdf.umd.min.js?v=1792198995"></script>
-<script src="pdf-movil.js?v=1792198995"></script>
+<script src="app.js?v=1792426435"></script>
+<script src="jspdf.umd.min.js?v=1792426435"></script>
+<script src="pdf-movil.js?v=1792426435"></script>
 </body>
 </html>

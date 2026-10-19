@@ -90,6 +90,8 @@ body {
   gap: 12px;
 }
 .card-header-toggle h2 { margin: 0; }
+.etiqueta-ajuste { font-weight: 600; }
+input[type="range"]:disabled { opacity: 0.45; }
 
 .hint {
   font-size: 0.82rem;
@@ -525,81 +527,6 @@ body.recibo-activo .solo-recibo { display: block; }
   margin: -6px 0 14px;
 }
 
-@media print {
-  @page { margin: 1.5cm 0.8cm; }
-  .toolbar, .btn-link, .btn-danger-icon, .modal, .estado-guardado, .card-privado, .linea-privada, .hint-print, .hint-privado, .field-tipo-trabajo, .app-header, .barra-vista-previa, .cliente-vacio, .badge-modo-factura { display: none !important; }
-  .solo-impresion { display: grid !important; }
-  html, body {
-    background: white;
-    font-size: calc(0.82rem * var(--print-scale, 1));
-    margin: 0 !important;
-    margin-left: var(--print-offset-x, 0mm) !important;
-    padding: 0 !important;
-  }
-  .container {
-    max-width: 100%;
-    margin-left: auto;
-    margin-right: auto;
-    margin-top: 0;
-    margin-bottom: 0;
-    padding: 0;
-  }
-  .card { box-shadow: none; border: 1px solid #ddd; padding: 8px 10px; margin-bottom: 3px; border-radius: 6px; }
-  .etapa-row, .etapa-capitulo-row, .firmas, .resumen { break-inside: avoid; }
-  .card h2 { font-size: 0.92rem; margin: 0 0 4px; }
-  .titulo-tipo-trabajo { font-size: 0.85rem; margin: 2px 0 8px; padding-bottom: 4px; }
-  .hint { margin: -2px 0 6px; font-size: 0.75rem; }
-  .field { margin-bottom: 4px; }
-  .field label { font-size: 0.72rem; margin-bottom: 1px; }
-  .letterhead-top { margin-bottom: 4px; gap: 8px; }
-  .sigla-row { padding: 5px 7px; }
-  .sigla-jb { font-size: 1.4rem; }
-  .muneco-icon { height: 40px; }
-  .empresa-nombre-input { font-size: 1.1rem; }
-  .empresa-actividad-input { font-size: 0.78rem; }
-  .dynamic-row { margin-bottom: 3px; }
-  .etapa-numero { width: 34px; height: 20px; font-size: 0.6rem; padding: 0 2px; }
-  .etapa-capitulo-row { padding: 5px 7px; margin-bottom: 4px; }
-  .capitulo-numero-texto { font-size: 0.85rem; }
-  .result-line { padding: 2px 0; font-size: 0.82rem; }
-  .result-line.total { font-size: 1rem; margin-top: 4px; padding-top: 5px; }
-  .firmas { margin: 10px 0; }
-  .firma-bloque p { margin: 0 0 20px; }
-  .recibo-titulo { font-size: 1.3rem; margin: 2px 0 16px; }
-  .recibo-cuerpo p { margin: 0 0 12px; line-height: 1.45; font-size: 0.95rem; }
-  .recibo-etiqueta-importe { margin: 0 0 4px !important; font-size: 0.95rem; }
-  .recibo-importe-destacado { font-size: 1.15rem; padding: 6px 10px; margin: 2px 0 12px !important; }
-  .recibo-fecha-lugar { margin-top: 18px; font-size: 0.95rem; }
-  .recibo-firma { margin-top: 30px; max-width: 220px; }
-  .recibo-sello-wrap { margin-bottom: 6px; }
-  .recibo-sello { font-size: 0.78rem; }
-  .recibo-firma p { margin: 0 0 20px; font-size: 0.95rem; }
-  .firma-bloque .recibo-sello-wrap { margin-top: 4px; margin-bottom: 0; }
-  input, textarea {
-    border: none !important;
-    padding: 1px 0 !important;
-    background: transparent !important;
-    resize: none;
-  }
-  .etapa-row textarea, .etapa-capitulo-row textarea {
-    display: none !important;
-  }
-  .etapa-desc-print {
-    display: block !important;
-    font-size: 1rem;
-    padding: 1px 0;
-  }
-  body.factura-activa .solo-factura { display: block !important; }
-  body.factura-activa .factura-info-grid { display: flex !important; }
-  body.factura-activa #etapas { display: none !important; }
-  body.factura-activa #campoCliente,
-  body.factura-activa #campoClienteNif,
-  body.factura-activa #campoClienteDireccion { display: none !important; }
-  .solo-documento { display: block !important; }
-  body.recibo-activo #reciboImpresion { display: block !important; }
-  body.recibo-activo #campoCliente,
-  body.recibo-activo #campoClienteNif { display: none !important; }
-}
 body.modo-vista-previa.factura-activa .solo-factura { display: block !important; }
 body.modo-vista-previa .solo-documento { display: block !important; }
 body.modo-vista-previa.factura-activa .factura-info-grid { display: flex !important; }

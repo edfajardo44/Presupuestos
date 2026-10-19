@@ -2,9 +2,9 @@
 // que en iPhone añade pie con URL/fecha/página y puede recortar el documento).
 (function () {
   const ML = 12;
-  const W = 186;
+  const W_PAGINA = 186;
   const MT = 12;
-  const YB = 283;
+  const YB_PAGINA = 283;
   const PAD = 4;
   const PT = 0.3528;
   const C = {
@@ -36,9 +36,12 @@
     return { data: c.toDataURL('image/png'), proporcion: img.naturalWidth / img.naturalHeight };
   }
 
-  function crearPdf() {
+  function crearPdf(escala = 1) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    const W = W_PAGINA / escala;
+    const YB = MT + (YB_PAGINA - MT) / escala;
+    const reducido = escala < 1;
     let y = MT;
     const x0 = ML + PAD;
     const cw = W - 2 * PAD;
@@ -51,10 +54,24 @@
     function lineas(texto, ancho) {
       return doc.splitTextToSize(texto, ancho);
     }
+    // Con escala < 1 cada página lleva su propia transformación (el contenido se dibuja en una hoja virtual más grande).
+    function abrirEscala() {
+      if (!reducido) return;
+      const k = 72 / 25.4;
+      const e = ML * k * (1 - escala);
+      const f = (297 - MT) * k * (1 - escala);
+      doc.internal.write('q', `${escala.toFixed(5)} 0 0 ${escala.toFixed(5)} ${e.toFixed(3)} ${f.toFixed(3)} cm`);
+    }
+    function cerrarEscala() {
+      if (reducido) doc.internal.write('Q');
+    }
     function nuevaPagina() {
+      cerrarEscala();
       doc.addPage();
+      abrirEscala();
       y = MT;
     }
+    abrirEscala();
 
     // ---------- Recibí (mismo texto y orden que el recibí del Mac) ----------
     // Un párrafo es una lista de trozos {t, b}; se parte en palabras (pegando la puntuación al trozo
@@ -266,6 +283,7 @@
 
     if (esRecibo) {
       dibujarRecibo();
+      cerrarEscala();
       return doc;
     }
 
@@ -445,14 +463,37 @@
     doc.line(ML, y + 15, ML + colW, y + 15);
     doc.line(ML + colW + 5, y + 15, ML + W, y + 15);
 
+    cerrarEscala();
     return doc;
   }
 
-  async function crearYCompartir(nombre) {
+  // "Ajustar a una sola página": busca la escala más grande (entre 50 % y 100 %) con la que todo cabe en una hoja.
+  const ESCALA_MIN = 0.5;
+  function crearPdfAjustado(unaPagina) {
+    if (!unaPagina) return { doc: crearPdf(1), escala: 1, cabe: true };
+    let doc = crearPdf(1);
+    if (doc.getNumberOfPages() === 1) return { doc, escala: 1, cabe: true };
+    doc = crearPdf(ESCALA_MIN);
+    if (doc.getNumberOfPages() > 1) return { doc, escala: ESCALA_MIN, cabe: false };
+    let bajo = ESCALA_MIN;
+    let alto = 1;
+    for (let i = 0; i < 12; i++) {
+      const medio = (bajo + alto) / 2;
+      if (crearPdf(medio).getNumberOfPages() === 1) bajo = medio; else alto = medio;
+    }
+    const escala = Math.floor(bajo * 1000) / 1000;
+    return { doc: crearPdf(escala), escala, cabe: true };
+  }
+
+  async function crearYCompartir(nombre, unaPagina) {
     let doc;
     try {
-      doc = crearPdf();
+      const r = crearPdfAjustado(unaPagina);
+      doc = r.doc;
       doc.setProperties({ title: nombre.replace(/\.pdf$/, '') });
+      if (unaPagina && !r.cabe) {
+        alert(`Aunque se ha reducido al ${Math.round(r.escala * 100)} %, no cabe en una sola página: saldrá en ${doc.getNumberOfPages()} páginas.`);
+      }
     } catch (e) {
       alert('No se pudo crear el PDF: ' + e.message);
       return;
@@ -477,7 +518,8 @@
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   }
 
-  window.__crearPdfPresupuesto = crearPdf;
+  window.__crearPdfPresupuesto = (unaPagina) => crearPdfAjustado(!!unaPagina).doc;
+  window.__crearPdfAjustado = crearPdfAjustado;
 
   function limpiarNombre(texto) {
     return texto
@@ -490,7 +532,7 @@
 
   function montarDialogoNombre() {
     const estilo = document.createElement('style');
-    estilo.textContent = '.modal-centro { align-items: center; padding: 16px; } .modal-centro .modal-content { border-radius: 16px; max-width: 420px; }';
+    estilo.textContent = '.modal-centro { align-items: center; padding: 16px; } .modal-centro .modal-content { border-radius: 16px; max-width: 420px; } .check-una-pagina { display: flex; align-items: center; gap: 10px; font-weight: 600; margin: 4px 0 14px; } .check-una-pagina input { width: 22px; height: 22px; flex: none; }';
     document.head.appendChild(estilo);
 
     const modal = document.createElement('div');
@@ -503,6 +545,7 @@
           <input type="text" id="inputNombrePdf" autocomplete="off" aria-label="Nombre del archivo">
         </div>
         <p class="hint">Se guardará como PDF. Cambia el nombre si quieres antes de enviarlo.</p>
+        <label class="check-una-pagina" id="filaUnaPagina"><input type="checkbox" id="chkUnaPagina">Ajustar a una sola página</label>
         <div class="toolbar">
           <button type="button" id="btnCancelarNombrePdf" class="btn btn-secondary">Cancelar</button>
           <button type="button" id="btnConfirmarNombrePdf" class="btn btn-primary">Compartir PDF</button>
@@ -511,11 +554,18 @@
     document.body.appendChild(modal);
 
     const input = modal.querySelector('#inputNombrePdf');
+    const chkUnaPagina = modal.querySelector('#chkUnaPagina');
+    const CLAVE_UNA_PAGINA = 'presupuestos-pintura-movil-una-pagina';
+    try { chkUnaPagina.checked = localStorage.getItem(CLAVE_UNA_PAGINA) === '1'; } catch (e) {}
+    chkUnaPagina.addEventListener('change', () => {
+      try { localStorage.setItem(CLAVE_UNA_PAGINA, chkUnaPagina.checked ? '1' : '0'); } catch (e) {}
+    });
     function cerrar() { modal.classList.add('hidden'); }
     function confirmar() {
       const base = limpiarNombre(input.value) || (esRecibo ? 'Recibí' : 'Presupuesto');
+      const unaPagina = !esRecibo && chkUnaPagina.checked;
       cerrar();
-      crearYCompartir(`${base}.pdf`);
+      crearYCompartir(`${base}.pdf`, unaPagina);
     }
     modal.querySelector('#btnCancelarNombrePdf').addEventListener('click', cerrar);
     modal.querySelector('#btnConfirmarNombrePdf').addEventListener('click', confirmar);
@@ -524,6 +574,7 @@
 
     return function abrir() {
       input.value = nombreDocumentoParaImprimir();
+      modal.querySelector('#filaUnaPagina').hidden = esRecibo;
       modal.classList.remove('hidden');
     };
   }

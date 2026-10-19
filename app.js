@@ -484,6 +484,78 @@ function resetPrintScale() {
   el('printScaleLabel').textContent = 100;
   document.documentElement.style.setProperty('--print-scale', 1);
   actualizarOffsetImpresion();
+  actualizarAjusteUnaPaginaUI();
+}
+
+// "Ajustar a una sola página": se mide el documento con las reglas de impresión (print.css puesto
+// temporalmente en media="all") y el ancho útil de un A4, y se busca el mayor tamaño que quepa en una hoja.
+const PRINT_ANCHO_PX = 733; // A4 (21 cm) menos 2 × 0,8 cm de margen
+const PRINT_ALTO_PX = 1009; // A4 (29,7 cm) menos 2 × 1,5 cm de margen
+const PRINT_ESCALA_MIN = 0.5;
+const PRINT_MARGEN_SEGURIDAD = 0.97;
+const TEXTO_AJUSTE_UNA_PAGINA = 'Al imprimir, reduce el tamaño solo lo necesario para que todo quepa en una hoja.';
+
+function calcularEscalaUnaPagina() {
+  const hoja = el('cssImpresion');
+  const contenido = document.querySelector('.container');
+  if (!hoja || !contenido) return null;
+  const raiz = document.documentElement;
+  const escalaAntes = raiz.style.getPropertyValue('--print-scale');
+  const anchoAntes = document.body.style.width;
+  const mediaAntes = hoja.media;
+  // Al medir, la página pasa un instante a su versión de impresión (mucho más corta) y el navegador
+  // te sube arriba: se guarda dónde estabas para volver exactamente ahí.
+  const scrollX = window.scrollX;
+  const scrollY = window.scrollY;
+  try {
+    hoja.media = 'all';
+    document.body.style.width = `${PRINT_ANCHO_PX}px`;
+    const cabe = (escala) => {
+      raiz.style.setProperty('--print-scale', escala);
+      return contenido.getBoundingClientRect().height <= PRINT_ALTO_PX * PRINT_MARGEN_SEGURIDAD;
+    };
+    if (cabe(1)) return { escala: 1, cabe: true };
+    if (!cabe(PRINT_ESCALA_MIN)) return { escala: PRINT_ESCALA_MIN, cabe: false };
+    let bajo = PRINT_ESCALA_MIN;
+    let alto = 1;
+    for (let i = 0; i < 12; i++) {
+      const medio = (bajo + alto) / 2;
+      if (cabe(medio)) bajo = medio; else alto = medio;
+    }
+    return { escala: Math.floor(bajo * 100) / 100, cabe: true };
+  } finally {
+    hoja.media = mediaAntes;
+    document.body.style.width = anchoAntes;
+    raiz.style.setProperty('--print-scale', escalaAntes || 1);
+    window.scrollTo(scrollX, scrollY);
+  }
+}
+
+function actualizarAjusteUnaPaginaUI(resultado) {
+  const activo = el('ajustarUnaPagina').checked;
+  el('printScale').disabled = activo;
+  const aviso = el('estadoAjusteUnaPagina');
+  if (!activo) {
+    aviso.textContent = TEXTO_AJUSTE_UNA_PAGINA;
+  } else if (!resultado) {
+    aviso.textContent = 'Activado: al imprimir se calcula el tamaño para que todo quepa en una hoja.';
+  } else {
+    const pct = Math.round(resultado.escala * 100);
+    if (!resultado.cabe) aviso.textContent = `Ni reduciendo al ${pct} % cabe en una hoja: saldrá en dos páginas. Acorta algún texto o quita alguna tarea.`;
+    else if (pct === 100) aviso.textContent = 'Cabe en una hoja sin reducir nada (100 %).';
+    else aviso.textContent = `Se imprimirá al ${pct} % para que quepa en una hoja.`;
+  }
+}
+
+function aplicarAjusteUnaPagina() {
+  if (!el('ajustarUnaPagina').checked) return;
+  const resultado = calcularEscalaUnaPagina();
+  if (!resultado) return;
+  const pct = Math.round(resultado.escala * 100);
+  el('printScale').value = pct;
+  el('printScaleLabel').textContent = pct;
+  document.documentElement.style.setProperty('--print-scale', resultado.escala);
+  actualizarAjusteUnaPaginaUI(resultado);
 }
 
 function conDe(texto) {
@@ -770,6 +842,7 @@ function recolectarDatos() {
     precioManual: el('precioManual').checked,
     subtotalManual: num('subtotalManual'),
     exentoIgic: el('exentoIgic').checked,
+    ajustarUnaPagina: el('ajustarUnaPagina').checked,
     reciboConcepto: el('reciboConcepto').value,
     reciboImporte: num('reciboImporte'),
     reciboPorcentaje: el('reciboPorcentaje').value,
@@ -799,6 +872,7 @@ function cargarDatos(data) {
   el('precioManual').checked = data.precioManual ?? false;
   el('subtotalManual').value = data.subtotalManual ?? 0;
   el('exentoIgic').checked = data.exentoIgic ?? false;
+  el('ajustarUnaPagina').checked = data.ajustarUnaPagina ?? false;
   el('reciboConcepto').value = data.reciboConcepto ?? '';
   el('reciboImporte').value = data.reciboImporte ?? 0;
   el('reciboPorcentaje').value = data.reciboPorcentaje ?? '50% inicial';
@@ -1172,7 +1246,17 @@ document.addEventListener('DOMContentLoaded', () => {
     renderExtras();
   });
 
+  el('ajustarUnaPagina').addEventListener('change', () => {
+    if (el('ajustarUnaPagina').checked) {
+      aplicarAjusteUnaPagina();
+    } else {
+      document.documentElement.style.setProperty('--print-scale', el('printScale').value / 100);
+      actualizarAjusteUnaPaginaUI();
+    }
+    marcarCambio();
+  });
   el('btnImprimir').addEventListener('click', () => {
+    aplicarAjusteUnaPagina();
     document.title = nombreDocumentoParaImprimir();
     window.print();
   });
@@ -1239,6 +1323,7 @@ function nombreDocumentoParaImprimir() {
 }
 
 window.addEventListener('beforeprint', () => {
+  aplicarAjusteUnaPagina();
   document.title = nombreDocumentoParaImprimir();
 });
 
