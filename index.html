@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Presupuestos de Pintura</title>
-<link rel="stylesheet" href="style.css?v=1792426435">
+<link rel="stylesheet" href="style.css?v=1792455896">
 </head>
 <body class="version-movil">
 <header class="app-header">
@@ -226,7 +226,7 @@
       <button type="button" id="btnAddEquipo" class="btn btn-link hidden">+ Agregar equipo (cuerda, arnés, andamio...)</button>
     </section>
 
-    <section class="card card-privado oculta-en-recibo">
+    <section class="card card-privado oculta-en-recibo solo-escritorio">
       <div class="card-header-toggle">
         <h2>Fibra de vidrio</h2>
         <label class="switch">
@@ -262,14 +262,9 @@
     </section>
 
     <section class="card card-privado oculta-en-recibo">
-      <div class="card-header-toggle">
-        <h2>Fijar precio manualmente</h2>
-        <label class="switch">
-          <input type="checkbox" id="precioManual">
-          <span class="slider"></span>
-        </label>
-      </div>
-      <p class="hint">Actívalo si quieres escribir tú el Subtotal directamente, ignorando la suma de mano de obra, materiales, etc. El IGIC y el Total se calculan igualmente a partir de ese número.</p>
+      <h2>Precio del trabajo</h2>
+      <input type="checkbox" id="precioManual" hidden>
+      <p class="hint">Escribe el Subtotal. El IGIC y el Total se calculan a partir de ese número.</p>
       <div class="field hidden" id="campoSubtotalManual">
         <label for="subtotalManual">Subtotal (€)</label>
         <input type="number" id="subtotalManual" min="0" step="0.01" value="0">
@@ -289,11 +284,11 @@
 
     <section class="card resumen oculta-en-recibo" id="resumen">
       <h2>Resumen</h2>
-      <p class="hint hint-privado hidden" id="avisoPrecioManual" style="margin-top:-4px;">✏️ Subtotal fijado manualmente, no es la suma de lo de abajo.</p>
+      <p class="hint hint-privado hidden solo-escritorio" id="avisoPrecioManual" style="margin-top:-4px;">✏️ Subtotal fijado manualmente, no es la suma de lo de abajo.</p>
       <div class="result-line linea-privada solo-escritorio"><span>Mano de obra (<span id="diasLabel">1</span> día(s))</span><span id="totalManoObra">0,00 €</span></div>
       <div class="result-line linea-privada solo-escritorio"><span>Materiales</span><span id="totalPintura">0,00 €</span></div>
       <div class="result-line linea-privada solo-escritorio"><span>Equipo de altura</span><span id="totalEquipo">0,00 €</span></div>
-      <div class="result-line linea-privada"><span>Fibra de vidrio</span><span id="totalFibra">0,00 €</span></div>
+      <div class="result-line linea-privada solo-escritorio"><span>Fibra de vidrio</span><span id="totalFibra">0,00 €</span></div>
       <div class="result-line linea-privada solo-escritorio"><span>Costos adicionales</span><span id="totalExtras">0,00 €</span></div>
       <div class="result-line linea-privada solo-escritorio"><span>Ganancia</span><span id="totalMargen">0,00 €</span></div>
       <div class="result-line subtotal"><span>Subtotal</span><span id="subtotal">0,00 €</span></div>
@@ -384,8 +379,8 @@ Garantía de 3 años.</textarea>
   </div>
 </div>
 
-<script src="app.js?v=1792426435"></script>
-<script src="jspdf.umd.min.js?v=1792426435"></script>
-<script src="pdf-movil.js?v=1792426435"></script>
+<script src="app.js?v=1792455896"></script>
+<script src="jspdf.umd.min.js?v=1792455896"></script>
+<script src="pdf-movil.js?v=1792455896"></script>
 </body>
 </html>

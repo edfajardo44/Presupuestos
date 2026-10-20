@@ -291,8 +291,27 @@ function toggleFibraUI() {
   el('camposFibra').classList.toggle('hidden', !activo);
 }
 
+const esVersionMovil = () => document.body.classList.contains('version-movil');
+
+function hayCostesInternos() {
+  const suma = (filas) => filas.reduce((s, r) => s + (Number(r.cost) || 0), 0);
+  return suma(empleadoRows) > 0
+    || num('precioMateriales') > 0
+    || (el('incluirEquipo').checked && suma(equipoRows) > 0)
+    || (el('incluirFibra').checked && num('fibraPrecioM2') * num('fibraMetros') > 0)
+    || suma(extraRows) > 0
+    || num('margen') > 0;
+}
+
+// En el iPhone no hay costes ni fibra: el Subtotal se escribe siempre a mano. Un documento hecho en el Mac
+// con costes o con fibra se respeta tal cual lo guardó el Mac.
+function precioManualActivo() {
+  if (esVersionMovil() && !hayCostesInternos()) return true;
+  return el('precioManual').checked;
+}
+
 function togglePrecioManualUI() {
-  const activo = el('precioManual').checked;
+  const activo = precioManualActivo();
   el('campoSubtotalManual').classList.toggle('hidden', !activo);
 }
 
@@ -747,7 +766,11 @@ function calcular() {
   const totalFibra = incluirFibra ? num('fibraPrecioM2') * num('fibraMetros') : 0;
 
   const totalMargen = num('margen');
-  const precioManual = el('precioManual').checked;
+  const precioManual = precioManualActivo();
+  if (esVersionMovil()) {
+    el('precioManual').checked = precioManual;
+    togglePrecioManualUI();
+  }
   const subtotal = precioManual ? num('subtotalManual') : (totalPintura + totalManoObra + totalEquipo + totalExtras + totalMargen + totalFibra);
   const exentoIgic = el('exentoIgic').checked;
   const totalIgic = exentoIgic ? 0 : subtotal * IGIC_RATE;
