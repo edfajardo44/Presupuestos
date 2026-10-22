@@ -256,7 +256,8 @@
 
     let yMeta = badgeY + badgeH + 6;
     fuente(10.5, 'bold');
-    doc.text(esRecibo ? 'Recibí' : 'Presupuesto', ML + W - PAD, yMeta, { align: 'right' });
+    const numeroFactura = facturaNumero && facturaFecha ? `${facturaNumero}/${new Date(facturaFecha).getFullYear()}` : String(facturaNumero ?? '');
+    doc.text(esFactura ? `Factura Nº ${numeroFactura}` : (esRecibo ? 'Recibí' : 'Presupuesto'), ML + W - PAD, yMeta, { align: 'right' });
     fuente(9, 'normal');
     doc.text(`Fecha: ${fecha}`, ML + W - PAD, yMeta + 4.6, { align: 'right' });
 
@@ -266,7 +267,7 @@
     fuente(11, 'normal');
     doc.text(telefono, x0, yFila + 8.4);
     let alturaFila = 11;
-    if (cliente && !esRecibo) {
+    if (cliente && !esRecibo && !esFactura) {
       const colX = ML + W / 2;
       fuente(8, 'normal', C.muted);
       doc.text('Cliente', colX, yFila + 3);
@@ -274,6 +275,17 @@
       const ls = lineas(cliente, W / 2 - PAD);
       doc.text(ls, colX, yFila + 8.4);
       alturaFila = 8.4 + (ls.length - 1) * 4.8 + 3;
+    }
+    if (esFactura) {
+      fuente(9, 'normal');
+      const emisor = [el('empresaNifNombre').value.trim(), `NIF: ${el('empresaNif').value.trim()}`, ...lineas(el('empresaDireccion').value.trim(), cw / 2 - 4)];
+      const comprador = [`Cliente: ${cliente}`, `NIF: ${el('clienteNif').value.trim()}`, el('clienteDireccion').value.trim()].flatMap((t) => lineas(t, cw / 2 - 4));
+      fuente(9, 'normal');
+      const yDatos = yFila + alturaFila + 1.5;
+      emisor.forEach((l, i) => doc.text(l, x0, yDatos + 3 + i * 4.2));
+      comprador.forEach((l, i) => doc.text(l, x0 + cw, yDatos + 3 + i * 4.2, { align: 'right' }));
+      doc.setLineWidth(0.3);
+      alturaFila += 1.5 + Math.max(emisor.length, comprador.length) * 4.2 + 1;
     }
     const membreteBottom = yFila + alturaFila + PAD;
     doc.setDrawColor(...C.borde);
@@ -377,11 +389,42 @@
       };
     }
 
+    function bloqueFacturaSeccion(texto) {
+      fuente(9.5, 'bold', C.verde);
+      const ls = lineas(texto.toUpperCase(), cw);
+      return {
+        h: ls.length * 4.4 + 4,
+        keepNext: true,
+        draw(yy) {
+          fuente(9.5, 'bold', C.verde);
+          ls.forEach((l, i) => doc.text(l, x0, yy + 4 + i * 4.4));
+        },
+      };
+    }
+
+    function bloqueFacturaLinea(texto) {
+      fuente(9.5, 'normal');
+      const ls = lineas(texto, cw);
+      return {
+        h: ls.length * 4.4 + 1.8,
+        keepNext: false,
+        draw(yy) {
+          fuente(9.5, 'normal');
+          ls.forEach((l, i) => doc.text(l, x0, yy + 3.6 + i * 4.4));
+        },
+      };
+    }
+
     const bloques = [];
     let capNum = 0;
     let tareaNum = 0;
     etapaRows.forEach((row) => {
       const desc = (row.desc || '').trim();
+      if (esFactura) {
+        if (row.esSeccion && desc) bloques.push(bloqueFacturaSeccion(desc));
+        else if (row.esCapitulo && desc) bloques.push(bloqueFacturaLinea(desc));
+        return;
+      }
       if (row.esSeccion) {
         capNum = 0;
         tareaNum = 0;
@@ -452,7 +495,11 @@
     }
 
     // ---------- Firmas ----------
-    if (y + 21 > YB + 3) nuevaPagina();
+    const selloLineas = esFactura
+      ? [el('empresaNifNombre').value.trim(), `NIF: ${el('empresaNif').value.trim()}`, ...lineas(el('empresaDireccion').value.trim(), (W - 5) / 2)]
+      : [];
+    const altoFirmas = 21 + (esFactura ? 3 + selloLineas.length * 4 : 0);
+    if (y + altoFirmas > YB + 3) nuevaPagina();
     y += 3;
     const colW = (W - 5) / 2;
     fuente(9.5, 'normal');
@@ -462,6 +509,13 @@
     doc.setLineWidth(0.3);
     doc.line(ML, y + 15, ML + colW, y + 15);
     doc.line(ML + colW + 5, y + 15, ML + W, y + 15);
+
+    if (esFactura) {
+      selloLineas.forEach((l, i) => {
+        fuente(8.5, i === 0 ? 'bold' : 'normal');
+        doc.text(l, ML, y + 19.5 + i * 4);
+      });
+    }
 
     cerrarEscala();
     return doc;
@@ -562,7 +616,7 @@
     });
     function cerrar() { modal.classList.add('hidden'); }
     function confirmar() {
-      const base = limpiarNombre(input.value) || (esRecibo ? 'Recibí' : 'Presupuesto');
+      const base = limpiarNombre(input.value) || (esRecibo ? 'Recibí' : (esFactura ? 'Factura' : 'Presupuesto'));
       const unaPagina = !esRecibo && chkUnaPagina.checked;
       cerrar();
       crearYCompartir(`${base}.pdf`, unaPagina);
@@ -585,8 +639,8 @@
     const nuevo = boton.cloneNode(true);
     boton.replaceWith(nuevo);
     nuevo.addEventListener('click', () => {
-      if (esRecibo && !(el('empresaNifNombre').value.trim() && el('empresaNif').value.trim() && el('empresaDireccion').value.trim())) {
-        alert('Antes de crear el recibí, rellena tus "Datos fiscales" (nombre, NIF y dirección). Se guardan una vez en este iPhone.');
+      if ((esRecibo || esFactura) && !(el('empresaNifNombre').value.trim() && el('empresaNif').value.trim() && el('empresaDireccion').value.trim())) {
+        alert(`Antes de crear ${esFactura ? 'la factura' : 'el recibí'}, rellena tus "Datos fiscales" (nombre, NIF y dirección). Se guardan una vez en este iPhone.`);
         el('empresaNifNombre').scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }

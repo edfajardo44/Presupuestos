@@ -595,11 +595,15 @@ body.modo-vista-previa { padding-bottom: 64px; }
 .barra-vista-previa .btn { flex: none; }
 
 
-/* Versión móvil: presupuestos y recibís */
+/* Versión móvil: presupuestos, facturas y recibís */
 body.version-movil .solo-escritorio,
-body.version-movil #btnNuevaFactura,
 body.version-movil .hint-print { display: none !important; }
 body.version-movil .card-header-toggle + .hint { margin-top: 10px; }
+/* Los cuatro botones de arriba, en cuadrícula de 2 x 2 */
+body.version-movil .toolbar:not(.toolbar-final) { display: grid; grid-template-columns: 1fr 1fr; }
+/* Los datos fiscales solo se piden al hacer una factura o un recibí */
+.solo-fiscal { display: none; }
+body.factura-activa .solo-fiscal, body.recibo-activo .solo-fiscal { display: block; }
 @media screen and (max-width: 480px) {
   body.version-movil .sigla-jb { font-size: 1.5rem; }
   body.version-movil .muneco-icon { height: 40px; }

@@ -464,7 +464,11 @@ function actualizarFacturaContenido() {
 function nuevaFactura() {
   const anio = new Date().getFullYear();
   const sugerido = obtenerSiguienteNumeroFactura(anio);
-  const respuesta = prompt(`Número de factura (año ${anio}):`, sugerido);
+  // Cada dispositivo (Mac, iPhone) lleva su propia cuenta de facturas: se recuerda comprobarlo antes de aceptar.
+  const aviso = esVersionMovil()
+    ? '\n\nEste iPhone lleva su propia cuenta de facturas. Antes de aceptar, mira cuál fue tu última factura (en el Mac o aquí) para no repetir ni saltarte un número.'
+    : '';
+  const respuesta = prompt(`Número de factura (año ${anio}):${aviso}`, sugerido);
   if (respuesta === null) return;
   const numero = parseInt(respuesta, 10);
   if (!numero || numero <= 0) {
